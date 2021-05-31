@@ -148,10 +148,7 @@
     }
 
     _destroyElement(element) {
-      if (element.parentNode) {
-        element.parentNode.removeChild(element);
-      }
-
+      element.remove();
       EventHandler__default['default'].trigger(element, EVENT_CLOSED);
     } // Static
 

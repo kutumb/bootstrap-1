@@ -257,17 +257,11 @@
   };
 
   const isVisible = element => {
-    if (!element) {
+    if (!isElement(element) || element.getClientRects().length === 0) {
       return false;
     }
 
-    if (element.style && element.parentNode && element.parentNode.style) {
-      const elementStyle = getComputedStyle(element);
-      const parentNodeStyle = getComputedStyle(element.parentNode);
-      return elementStyle.display !== 'none' && parentNodeStyle.display !== 'none' && elementStyle.visibility !== 'hidden';
-    }
-
-    return false;
+    return getComputedStyle(element).getPropertyValue('visibility') === 'visible';
   };
 
   const isDisabled = element => {
@@ -358,6 +352,33 @@
     if (typeof callback === 'function') {
       callback();
     }
+  };
+  /**
+   * Return the previous/next element of a list.
+   *
+   * @param {array} list    The list of elements
+   * @param activeElement   The active element
+   * @param shouldGetNext   Choose to get next or previous element
+   * @param isCycleAllowed
+   * @return {Element|elem} The proper element
+   */
+
+
+  const getNextActiveElement = (list, activeElement, shouldGetNext, isCycleAllowed) => {
+    let index = list.indexOf(activeElement); // if the element does not exist in the list return an element depending on the direction and if cycle is allowed
+
+    if (index === -1) {
+      return list[!shouldGetNext && isCycleAllowed ? list.length - 1 : 0];
+    }
+
+    const listLength = list.length;
+    index += shouldGetNext ? 1 : -1;
+
+    if (isCycleAllowed) {
+      index = (index + listLength) % listLength;
+    }
+
+    return list[Math.max(0, Math.min(index, listLength - 1))];
   };
 
   /**
@@ -837,10 +858,7 @@
     }
 
     _destroyElement(element) {
-      if (element.parentNode) {
-        element.parentNode.removeChild(element);
-      }
-
+      element.remove();
       EventHandler.trigger(element, EVENT_CLOSED);
     } // Static
 
@@ -1344,20 +1362,7 @@
 
     _getItemByOrder(order, activeElement) {
       const isNext = order === ORDER_NEXT;
-      const isPrev = order === ORDER_PREV;
-
-      const activeIndex = this._getItemIndex(activeElement);
-
-      const lastItemIndex = this._items.length - 1;
-      const isGoingToWrap = isPrev && activeIndex === 0 || isNext && activeIndex === lastItemIndex;
-
-      if (isGoingToWrap && !this._config.wrap) {
-        return activeElement;
-      }
-
-      const delta = isPrev ? -1 : 1;
-      const itemIndex = (activeIndex + delta) % this._items.length;
-      return itemIndex === -1 ? this._items[this._items.length - 1] : this._items[itemIndex];
+      return getNextActiveElement(this._items, activeElement, isNext, this._config.wrap);
     }
 
     _triggerSlideEvent(relatedTarget, eventDirectionName) {
@@ -2277,27 +2282,19 @@
       };
     }
 
-    _selectMenuItem(event) {
+    _selectMenuItem({
+      key,
+      target
+    }) {
       const items = SelectorEngine.find(SELECTOR_VISIBLE_ITEMS, this._menu).filter(isVisible);
 
       if (!items.length) {
         return;
-      }
-
-      let index = items.indexOf(event.target); // Up
-
-      if (event.key === ARROW_UP_KEY && index > 0) {
-        index--;
-      } // Down
+      } // if target isn't included in items (e.g. when expanding the dropdown)
+      // allow cycling to get the last item in case key equals ARROW_UP_KEY
 
 
-      if (event.key === ARROW_DOWN_KEY && index < items.length - 1) {
-        index++;
-      } // index is -1 if the first keydown is an ArrowUp
-
-
-      index = index === -1 ? 0 : index;
-      items[index].focus();
+      getNextActiveElement(items, target, key === ARROW_DOWN_KEY, !items.includes(target)).focus();
     } // Static
 
 
@@ -2406,17 +2403,19 @@
         return;
       }
 
-      if (!isActive && (event.key === ARROW_UP_KEY || event.key === ARROW_DOWN_KEY)) {
-        getToggleButton().click();
+      if (event.key === ARROW_UP_KEY || event.key === ARROW_DOWN_KEY) {
+        if (!isActive) {
+          getToggleButton().click();
+        }
+
+        Dropdown.getInstance(getToggleButton())._selectMenuItem(event);
+
         return;
       }
 
       if (!isActive || event.key === SPACE_KEY) {
         Dropdown.clearMenus();
-        return;
       }
-
-      Dropdown.getInstance(getToggleButton())._selectMenuItem(event);
     }
 
   }
@@ -2489,8 +2488,12 @@
       }
 
       const actualValue = element.style[styleProp];
+
+      if (actualValue) {
+        Manipulator.setDataAttribute(element, styleProp, actualValue);
+      }
+
       const calculatedValue = window.getComputedStyle(element)[styleProp];
-      Manipulator.setDataAttribute(element, styleProp, actualValue);
       element.style[styleProp] = `${callback(Number.parseFloat(calculatedValue))}px`;
     });
   };
@@ -2629,7 +2632,7 @@
 
       EventHandler.off(this._element, EVENT_MOUSEDOWN);
 
-      this._getElement().parentNode.removeChild(this._element);
+      this._element.remove();
 
       this._isAppended = false;
     }
@@ -2730,19 +2733,20 @@
         return;
       }
 
-      if (this._isAnimated()) {
-        this._isTransitioning = true;
-      }
-
       const showEvent = EventHandler.trigger(this._element, EVENT_SHOW$3, {
         relatedTarget
       });
 
-      if (this._isShown || showEvent.defaultPrevented) {
+      if (showEvent.defaultPrevented) {
         return;
       }
 
       this._isShown = true;
+
+      if (this._isAnimated()) {
+        this._isTransitioning = true;
+      }
+
       hide();
       document.body.classList.add(CLASS_NAME_OPEN);
 
@@ -2765,7 +2769,7 @@
     }
 
     hide(event) {
-      if (event) {
+      if (event && ['A', 'AREA'].includes(event.target.tagName)) {
         event.preventDefault();
       }
 
@@ -3432,7 +3436,7 @@
       const elName = el.nodeName.toLowerCase();
 
       if (!allowlistKeys.includes(elName)) {
-        el.parentNode.removeChild(el);
+        el.remove();
         continue;
       }
 
@@ -3619,8 +3623,8 @@
       clearTimeout(this._timeout);
       EventHandler.off(this._element.closest(`.${CLASS_NAME_MODAL}`), 'hide.bs.modal', this._hideModalHandler);
 
-      if (this.tip && this.tip.parentNode) {
-        this.tip.parentNode.removeChild(this.tip);
+      if (this.tip) {
+        this.tip.remove();
       }
 
       if (this._popper) {
@@ -3725,8 +3729,8 @@
           return;
         }
 
-        if (this._hoverState !== HOVER_STATE_SHOW && tip.parentNode) {
-          tip.parentNode.removeChild(tip);
+        if (this._hoverState !== HOVER_STATE_SHOW) {
+          tip.remove();
         }
 
         this._cleanTipClass();
@@ -4117,10 +4121,6 @@
 
         const _config = typeof config === 'object' && config;
 
-        if (!data && /dispose|hide/.test(config)) {
-          return;
-        }
-
         if (!data) {
           data = new Tooltip(this, _config);
         }
@@ -4218,6 +4218,24 @@
       return this.getTitle() || this._getContent();
     }
 
+    getTipElement() {
+      if (this.tip) {
+        return this.tip;
+      }
+
+      this.tip = super.getTipElement();
+
+      if (!this.getTitle()) {
+        SelectorEngine.findOne(SELECTOR_TITLE, this.tip).remove();
+      }
+
+      if (!this._getContent()) {
+        SelectorEngine.findOne(SELECTOR_CONTENT, this.tip).remove();
+      }
+
+      return this.tip;
+    }
+
     setContent() {
       const tip = this.getTipElement(); // we use append for html objects to maintain js events
 
@@ -4257,10 +4275,6 @@
         let data = Data.get(this, DATA_KEY$3);
 
         const _config = typeof config === 'object' ? config : null;
-
-        if (!data && /dispose|hide/.test(config)) {
-          return;
-        }
 
         if (!data) {
           data = new Popover(this, _config);
