@@ -11,10 +11,10 @@
 }
 
 .link-primary {
-  color: #6610f2;
+  color: #fd7e14;
 }
 .link-primary:hover, .link-primary:focus {
-  color: #520dc2;
+  color: #fd9843;
 }
 
 .link-secondary {
@@ -421,7 +421,7 @@
 }
 
 .border-primary {
-  border-color: #6610f2 !important;
+  border-color: #fd7e14 !important;
 }
 
 .border-secondary {
@@ -1131,27 +1131,27 @@
 }
 
 .fs-1 {
-  font-size: calc(1.35rem + 1.2vw) !important;
+  font-size: calc(1.3375rem + 1.05vw) !important;
 }
 
 .fs-2 {
-  font-size: calc(1.305rem + 0.66vw) !important;
+  font-size: calc(1.295rem + 0.54vw) !important;
 }
 
 .fs-3 {
-  font-size: calc(1.2825rem + 0.39vw) !important;
+  font-size: calc(1.27375rem + 0.285vw) !important;
 }
 
 .fs-4 {
-  font-size: calc(1.26rem + 0.12vw) !important;
+  font-size: calc(1.2525rem + 0.03vw) !important;
 }
 
 .fs-5 {
-  font-size: 1.125rem !important;
+  font-size: 1.0625rem !important;
 }
 
 .fs-6 {
-  font-size: 0.9rem !important;
+  font-size: 0.85rem !important;
 }
 
 .fst-italic {
@@ -1250,7 +1250,7 @@
 
 /* rtl:end:remove */
 .text-primary {
-  color: #6610f2 !important;
+  color: #fd7e14 !important;
 }
 
 .text-secondary {
@@ -1306,7 +1306,7 @@
 }
 
 .bg-primary {
-  background-color: #6610f2 !important;
+  background-color: #fd7e14 !important;
 }
 
 .bg-secondary {
@@ -4692,19 +4692,19 @@
 }
 @media (min-width: 1200px) {
   .fs-1 {
-    font-size: 2.25rem !important;
+    font-size: 2.125rem !important;
   }
 
   .fs-2 {
-    font-size: 1.8rem !important;
+    font-size: 1.7rem !important;
   }
 
   .fs-3 {
-    font-size: 1.575rem !important;
+    font-size: 1.4875rem !important;
   }
 
   .fs-4 {
-    font-size: 1.35rem !important;
+    font-size: 1.275rem !important;
   }
 }
 @media print {
